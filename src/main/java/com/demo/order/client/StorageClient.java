@@ -51,9 +51,10 @@ public class StorageClient {
         return post("/storage/confirm", body);
     }
 
-    public TccRemoteResult cancel(String xid) {
+    public TccRemoteResult cancel(String xid, boolean mockFailCancel) {
         Map<String, Object> body = new HashMap<>();
         body.put("xid", xid);
+        body.put("mockFailCancel", mockFailCancel);
         return post("/storage/cancel", body);
     }
 

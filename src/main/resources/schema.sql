@@ -8,10 +8,13 @@ CREATE TABLE IF NOT EXISTS t_order (
     created_at  TIMESTAMP   DEFAULT CURRENT_TIMESTAMP
 );
 
--- 全局事务日志表（协调器记录）：status 取值 TRYING / CONFIRMED / CANCELLED / CONFIRM_FAILED
+-- 全局事务日志表（协调器记录）
+-- status 取值 TRYING / CONFIRMED / CANCELLED / CONFIRM_FAILED / CANCEL_FAILED
+-- retry_count 记录二阶段（Confirm 或 Cancel）实际尝试次数，供排查与后台恢复使用
 CREATE TABLE IF NOT EXISTS t_global_txn_log (
-    xid        VARCHAR(64) PRIMARY KEY,
-    status     VARCHAR(16) NOT NULL,
-    detail     VARCHAR(255),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    xid         VARCHAR(64) PRIMARY KEY,
+    status      VARCHAR(16) NOT NULL,
+    detail      VARCHAR(255),
+    retry_count INT         NOT NULL DEFAULT 0,
+    created_at  TIMESTAMP   DEFAULT CURRENT_TIMESTAMP
 );

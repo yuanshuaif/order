@@ -1,6 +1,0 @@
-com\demo\order\service\OrderTccService.class
-com\demo\order\client\TccRemoteResult.class
-com\demo\order\tcc\TccTransactionManager.class
-com\demo\order\client\StorageClient.class
-com\demo\order\controller\OrderController.class
-com\demo\order\OrderServiceApplication.class

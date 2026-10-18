@@ -15,6 +15,7 @@ import java.util.Map;
  *   count           购买数量（默认 1）
  *   mockFailTry     true = 模拟 Try 阶段库存分支业务失败，验证全局回滚（Cancel）
  *   mockFailConfirm true = 模拟 Confirm 阶段库存分支失败，验证 Confirm 失败重试语义
+ *   mockFailCancel  true = 模拟 Cancel 阶段库存分支失败，验证 Cancel 失败重试语义
  */
 @RestController
 public class OrderController {
@@ -29,7 +30,8 @@ public class OrderController {
     public Map<String, Object> createOrder(@RequestParam(defaultValue = "1001") long productId,
                                            @RequestParam(defaultValue = "1") int count,
                                            @RequestParam(defaultValue = "false") boolean mockFailTry,
-                                           @RequestParam(defaultValue = "false") boolean mockFailConfirm) {
-        return tccManager.placeOrder(productId, count, mockFailTry, mockFailConfirm);
+                                           @RequestParam(defaultValue = "false") boolean mockFailConfirm,
+                                           @RequestParam(defaultValue = "false") boolean mockFailCancel) {
+        return tccManager.placeOrder(productId, count, mockFailTry, mockFailConfirm, mockFailCancel);
     }
 }
