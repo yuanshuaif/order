@@ -1,6 +1,6 @@
 package com.demo.order.controller;
 
-import com.demo.order.tcc.TccTransactionManager;
+import com.demo.order.service.OrderService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -20,10 +20,10 @@ import java.util.Map;
 @RestController
 public class OrderController {
 
-    private final TccTransactionManager tccManager;
+    private final OrderService orderService;
 
-    public OrderController(TccTransactionManager tccManager) {
-        this.tccManager = tccManager;
+    public OrderController(OrderService orderService) {
+        this.orderService = orderService;
     }
 
     @PostMapping("/order/create")
@@ -32,6 +32,6 @@ public class OrderController {
                                            @RequestParam(defaultValue = "false") boolean mockFailTry,
                                            @RequestParam(defaultValue = "false") boolean mockFailConfirm,
                                            @RequestParam(defaultValue = "false") boolean mockFailCancel) {
-        return tccManager.placeOrder(productId, count, mockFailTry, mockFailConfirm, mockFailCancel);
+        return orderService.placeOrder(productId, count, mockFailTry, mockFailConfirm, mockFailCancel);
     }
 }
