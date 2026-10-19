@@ -19,6 +19,10 @@ import java.util.UUID;
  * 不需要拆成 Try/Confirm/Cancel 三段，提交即生效、回滚即从未存在。
  * 远程分支由 TccTransactionManager 以【事务回调】的方式协调：
  * 本地事务提交后自动 Confirm、回滚后自动 Cancel，业务代码无感知。
+ *
+ * 发起方对远程分支只知 actionName（动作在注册服务里查得），
+ * 要传的业务参数放进 params 由参与方按形参名绑定——换一个参与方，
+ * 这里只需换 actionName 和参数，不用新写任何 Client 类。
  */
 @Service
 public class OrderService {
@@ -51,17 +55,27 @@ public class OrderService {
         String xid = UUID.randomUUID().toString();
         result.put("xid", xid);
 
+        // 远程分支的业务参数（含测试开关），按参与方 Try 方法形参名命名：
+        // tryDeduct(String xid, long productId, int count, boolean mockFail)
+        // 其中 xid 由信封自动注入，Confirm/Cancel 的开关只在二阶段用到（见下）
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("productId", productId);
+        params.put("count", count);
+        params.put("mockFail", mockFailTry);
+        // 参与方二阶段方法形参：confirm(xid, mockFailConfirm) / cancel(xid, mockFailCancel)
+        params.put("mockFailConfirm", mockFailConfirm);
+        params.put("mockFailCancel", mockFailCancel);
+
         try {
             // ① 本地业务：创建订单（正常调用，随本地事务提交/回滚）
             createOrder(xid, productId, count);
-            // ② 远程分支：Try + 注册二阶段事务回调（提交->Confirm / 回滚->Cancel）
-            tccManager.registerRemoteBranch(xid, productId, count,
-                    mockFailTry, mockFailConfirm, mockFailCancel, result);
+            // ② 远程分支：按动作名注册 + Try + 二阶段事务回调（提交->Confirm / 回滚->Cancel）
+            tccManager.registerBranch(xid, "deductStorage", params, result);
         } catch (Exception e) {
             // 任何异常都不向外抛（抛出会成为 Controller 的 500）：
             // 标记回滚 -> 方法正常返回 -> Spring 执行回滚 -> 触发 Cancel 回调
             log.warn("[Order] 本地事务内出现异常，标记回滚：{}", e.getMessage());
-            result.putIfAbsent("storageTryMessage", "Try 未发起或未成功：" + e.getMessage());
+            result.putIfAbsent("tryMessage", "Try 未发起或未成功：" + e.getMessage());
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
         }
         return result;

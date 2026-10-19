@@ -17,7 +17,7 @@ spring:
       enabled: true
       path: /h2-console
 
-# 库存服务（TCC 参与方）地址
-storage:
-  service:
-    base-url: http://localhost:8082
+# TCC 注册服务地址（动作名 -> 参与方地址与方法的映射从这里查）
+tcc:
+  registry:
+    base-url: http://localhost:8083
