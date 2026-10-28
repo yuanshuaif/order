@@ -34,7 +34,8 @@ import java.util.concurrent.ConcurrentHashMap;
  *   2. 全局 TRYING 日志随本地业务同一事务写入（提交才有记录）；首个分支注册一次事务回调：
  *        afterCommit           -> 逆序遍历该 xid 全部分支，逐个 Confirm（重试，不回滚）
  *        afterCompletion(回滚)  -> 逆序遍历全部分支，逐个 Cancel（重试，不放弃）
- *   3. 远程 Try：统一信封调 {serviceUrl}/tcc/invoke；失败不抛异常，只标记 rollbackOnly
+ *   4. 远程 Try：直调动作专属业务端点（POST {serviceUrl}/tcc/{动作名}，扁平参数）；
+ *      二阶段走统一信封 /tcc/invoke 由参与方反射分发；失败不抛异常，只标记 rollbackOnly
  *
  * 回调里写库必须用独立事务（REQUIRES_NEW）：回调执行时本地事务已提交/回滚，
  * 但连接可能仍绑定在线程上，直接写会“搭”在已结束的事务上（Spring 文档要求）。
@@ -102,8 +103,8 @@ public class TccTransactionManager {
         // 3. 首个分支：全局 TRYING 日志（随业务事务，提交才有记录）+ 事务回调（一个事务只挂一次）
         registerCompletionCallbackOnce(xid, result);
 
-        // 4. 远程 Try：统一信封调用参与方通用端点
-        TccRemoteResult r = invoker.invoke(info, xid, "TRY", params);
+        // 4. 远程 Try：直调动作的业务端点 POST {serviceUrl}/tcc/{动作名}（扁平参数，无信封）
+        TccRemoteResult r = invoker.tryInvoke(info, xid, params);
         result.putIfAbsent("tryMessage", r.getMessage());
 
         if (!r.isSuccess()) {

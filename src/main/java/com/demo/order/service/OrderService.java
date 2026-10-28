@@ -55,9 +55,9 @@ public class OrderService {
         String xid = UUID.randomUUID().toString();
         result.put("xid", xid);
 
-        // 远程分支的业务参数（含测试开关），按参与方 Try 方法形参名命名：
-        // tryDeduct(String xid, long productId, int count, boolean mockFail)
-        // 其中 xid 由信封自动注入，Confirm/Cancel 的开关只在二阶段用到（见下）
+        // 远程分支的业务参数（含测试开关），字段名与参与方一阶段端点请求体对齐：
+        // POST /tcc/deduct  body: deduct(xid, productId, count, mockFail)
+        // 二阶段开关只在 Confirm/Cancel 用到（参数快照会带到二阶段）
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("productId", productId);
         params.put("count", count);
@@ -69,8 +69,8 @@ public class OrderService {
         try {
             // ① 本地业务：创建订单（正常调用，随本地事务提交/回滚）
             createOrder(xid, productId, count);
-            // ② 远程分支：按动作名注册 + Try + 二阶段事务回调（提交->Confirm / 回滚->Cancel）
-            tccManager.registerBranch(xid, "deductStorage", params, result);
+            // ② 远程分支：按动作名注册 + 一阶段直调（POST /tcc/deduct）+ 二阶段事务回调
+            tccManager.registerBranch(xid, "deduct", params, result);
         } catch (Exception e) {
             // 任何异常都不向外抛（抛出会成为 Controller 的 500）：
             // 标记回滚 -> 方法正常返回 -> Spring 执行回滚 -> 触发 Cancel 回调
